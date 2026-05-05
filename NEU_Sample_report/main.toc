@@ -25,7 +25,7 @@
 \contentsline {subsection}{\numberline {6.4}Optimization}{23}{subsection.6.4}%
 \contentsline {section}{\numberline {7}Python Application}{24}{section.7}%
 \contentsline {subsection}{\numberline {7.1}Architecture}{24}{subsection.7.1}%
-\contentsline {subsection}{\numberline {7.2}Database Integration}{24}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.2}Database Integration}{25}{subsection.7.2}%
 \contentsline {subsection}{\numberline {7.3}Core Features}{26}{subsection.7.3}%
 \contentsline {subsection}{\numberline {7.4}Reporting Module}{26}{subsection.7.4}%
 \contentsline {subsection}{\numberline {7.5}User Interface (CLI/GUI)}{27}{subsection.7.5}%

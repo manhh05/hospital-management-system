@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.4)  5 MAY 2026 13:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.4)  5 MAY 2026 14:10
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1859,9 +1859,14 @@ File: Images/hms_architecture_v2.png Graphic file (type png)
 <use Images/hms_architecture_v2.png>
 Package pdftex.def Info: Images/hms_architecture_v2.png  used on input line 13.
 (pdftex.def)             Requested size: 418.25368pt x 290.2153pt.
+
+Overfull \hbox (30.6367pt too wide) in paragraph at lines 18--19
+\T5/cmr/m/n/10 fron-tend as-sets, is pub-licly avail-able at: \T5/cmtt/m/n/10 https://github.com/manhh05/hospital-management-system 
+ []
+
 File: Images/logo 1.pdf Graphic file (type pdf)
 <use Images/logo 1.pdf>
-Package pdftex.def Info: Images/logo 1.pdf  used on input line 21.
+Package pdftex.def Info: Images/logo 1.pdf  used on input line 22.
 (pdftex.def)             Requested size: 22.70746pt x 22.71664pt.
 [24
 
@@ -1878,48 +1883,48 @@ File: lstlang1.sty 2025/11/14 1.11b listings language file
  (main.listing)
 File: Images/logo 1.pdf Graphic file (type pdf)
 <use Images/logo 1.pdf>
-Package pdftex.def Info: Images/logo 1.pdf  used on input line 63.
+Package pdftex.def Info: Images/logo 1.pdf  used on input line 59.
 (pdftex.def)             Requested size: 22.70746pt x 22.71664pt.
  [25]
 <Images/web_appointment_schedule.png, id=904, 1743.51375pt x 383.18156pt>
 File: Images/web_appointment_schedule.png Graphic file (type png)
 <use Images/web_appointment_schedule.png>
-Package pdftex.def Info: Images/web_appointment_schedule.png  used on input line 77.
+Package pdftex.def Info: Images/web_appointment_schedule.png  used on input line 79.
 (pdftex.def)             Requested size: 334.60422pt x 73.5361pt.
 
-Overfull \hbox (5.31708pt too wide) in paragraph at lines 74--80
+Overfull \hbox (5.31708pt too wide) in paragraph at lines 76--82
 []\T5/cmr/bx/n/10 Daily Ap-point-ments Re-port: \T5/cmr/m/n/10 The \T5/cmtt/m/n/10 get_daily_appointments_report() \T5/cmr/m/n/10 func-tion queries
  []
 
 <Images/web_invoice_billing.png, id=905, 1738.24406pt x 388.45125pt>
 File: Images/web_invoice_billing.png Graphic file (type png)
 <use Images/web_invoice_billing.png>
-Package pdftex.def Info: Images/web_invoice_billing.png  used on input line 84.
+Package pdftex.def Info: Images/web_invoice_billing.png  used on input line 86.
 (pdftex.def)             Requested size: 334.60422pt x 74.77264pt.
 File: Images/logo 1.pdf Graphic file (type pdf)
 <use Images/logo 1.pdf>
-Package pdftex.def Info: Images/logo 1.pdf  used on input line 88.
+Package pdftex.def Info: Images/logo 1.pdf  used on input line 89.
 (pdftex.def)             Requested size: 22.70746pt x 22.71664pt.
 [26 <./Images/web_appointment_schedule.png>]
 <Images/web_dashboard.png, id=913, 2168.1pt x 1282.7925pt>
 File: Images/web_dashboard.png Graphic file (type png)
 <use Images/web_dashboard.png>
-Package pdftex.def Info: Images/web_dashboard.png  used on input line 96.
+Package pdftex.def Info: Images/web_dashboard.png  used on input line 98.
 (pdftex.def)             Requested size: 418.25368pt x 247.45213pt.
 <Images/web_patients.png, id=914, 2168.1pt x 1282.7925pt>
 File: Images/web_patients.png Graphic file (type png)
 <use Images/web_patients.png>
-Package pdftex.def Info: Images/web_patients.png  used on input line 103.
+Package pdftex.def Info: Images/web_patients.png  used on input line 105.
 (pdftex.def)             Requested size: 418.25368pt x 247.45213pt.
 File: Images/logo 1.pdf Graphic file (type pdf)
 <use Images/logo 1.pdf>
-Package pdftex.def Info: Images/logo 1.pdf  used on input line 107.
+Package pdftex.def Info: Images/logo 1.pdf  used on input line 109.
 (pdftex.def)             Requested size: 22.70746pt x 22.71664pt.
  [27 <./Images/web_invoice_billing.png> <./Images/web_dashboard.png>]
 <Images/web_doctors.png, id=924, 2168.1pt x 1282.7925pt>
 File: Images/web_doctors.png Graphic file (type png)
 <use Images/web_doctors.png>
-Package pdftex.def Info: Images/web_doctors.png  used on input line 110.
+Package pdftex.def Info: Images/web_doctors.png  used on input line 112.
 (pdftex.def)             Requested size: 418.25368pt x 247.45213pt.
 )
 File: Images/logo 1.pdf Graphic file (type pdf)
@@ -1960,15 +1965,15 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 42005 strings out of 467691
- 847898 string characters out of 5410596
+ 42008 strings out of 467691
+ 847969 string characters out of 5410596
  1959094 words of memory out of 5000000
- 69797 multiletter control sequences out of 15000+600000
+ 69800 multiletter control sequences out of 15000+600000
  645334 words of font info for 70 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  99i,25n,118p,1231b,1896s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\DUONG MINH ANH\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm1000.pk><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnbx10.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnbx12.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vncsc10.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnr10.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnr5.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnr8.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnti10.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vntt10.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vntt8.pfb><C:/Users/DUONG MINH ANH/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vntt9.pfb>
-Output written on main.pdf (31 pages, 9379271 bytes).
+Output written on main.pdf (31 pages, 9379740 bytes).
 PDF statistics:
  1119 PDF objects out of 1200 (max. 8388607)
  559 named destinations out of 1000 (max. 500000)
