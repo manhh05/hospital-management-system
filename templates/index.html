@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hospital Management System</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon icon-hosp"></div>
+    <div class="brand-title">MedCore HMS</div>
+    <div class="brand-sub">Hospital Management</div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <span class="icon icon-dashboard"></span> Dashboard
+    </div>
+    
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="navigate('patients')">
+      <span class="icon icon-patient"></span> Patients 
+    </div>
+    <div class="nav-item" onclick="navigate('doctors')">
+      <span class="icon icon-doctor"></span> Doctors 
+    </div>
+    <div class="nav-item" onclick="navigate('appointments')">
+      <span class="icon icon-appointment"></span> Appointments 
+    </div>
+    <div class="nav-item" onclick="navigate('invoices')">
+      <span class="icon icon-invoice"></span> Invoices 
+    </div>
+    
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="navigate('audit')">
+      <span class="icon icon-auditlog"></span> Audit Log 
+    </div>
+  </nav>
+  <div class="sidebar-footer">v1.0 · MANH Hospital</div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-right">
+      <div class="topbar-date" id="topbar-date"></div>
+      <div class="avatar">AD</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <!-- Thay emoji 👤 bằng SVG[cite: 4] -->
+            <span class="stat-mask-icon icon-stat-patient"></span>
+          </div>
+          <div class="stat-info">
+            <div class="stat-val" id="stat-patients">0</div>
+            <div class="stat-label">Total Patients</div>
+            <div class="stat-delta">↑ Active records</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <!-- Thay emoji 🩺 bằng SVG[cite: 4] -->
+            <span class="stat-mask-icon icon-stat-doctor"></span>
+          </div>
+          <div class="stat-info">
+            <div class="stat-val" id="stat-doctors">0</div>
+            <div class="stat-label">Doctors</div>
+            <div class="stat-delta">Across all departments</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">
+            <!-- Thay emoji 📅 bằng SVG[cite: 4] -->
+            <span class="stat-mask-icon icon-stat-appointment"></span>
+          </div>
+          <div class="stat-info">
+            <div class="stat-val" id="stat-appointments">0</div>
+            <div class="stat-label">Appointments</div>
+            <div class="stat-delta">Total scheduled</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">
+            <!-- Thay emoji 💰 bằng SVG[cite: 4] -->
+            <span class="stat-mask-icon icon-stat-revenue"></span>
+          </div>
+          <div class="stat-info">
+            <div class="stat-val" id="stat-revenue">$0</div>
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-delta">From all invoices</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="card">
+          <!-- Thay emoji 📅 ở tiêu đề[cite: 4] -->
+          <div class="card-title">
+            <span class="icon-title icon-title-appointment"></span> Upcoming Appointments
+          </div>
+          <div id="dash-appointments"></div>
+        </div>
+        <div class="card">
+          <!-- Thay emoji 📋 ở tiêu đề[cite: 4] -->
+          <div class="card-title">
+            <span class="icon-title icon-title-auditlog"></span> Recent Activity
+          </div>
+          <div id="dash-activity"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PATIENTS ── -->
+    <div class="page" id="page-patients">
+      <div class="sec-header">
+        <div class="sec-title">Patient Records</div>
+        <div class="sec-actions">
+          <div class="search-box">
+            <span class="search-icon"></span> 
+            <input type="text" id="search-patients" placeholder="Search patients…" oninput="renderPatients()"/>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('patient')">＋ Add Patient</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>DOB</th><th>Gender</th><th>Phone</th><th>Address</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="patients-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── DOCTORS ── -->
+    <div class="page" id="page-doctors">
+      <div class="sec-header">
+        <div class="sec-title">Medical Staff</div>
+        <div class="sec-actions">
+          <div class="search-box">
+            <span class="search-icon"></span>
+            <input type="text" id="search-doctors" placeholder="Search doctors…" oninput="renderDoctors()"/>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('doctor')">＋ Add Doctor</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Specialty</th><th>Department</th><th>Appointments</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="doctors-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── APPOINTMENTS ── -->
+    <div class="page" id="page-appointments">
+      <div class="sec-header">
+        <div class="sec-title">Appointment Schedule</div>
+        <div class="sec-actions">
+          <div class="search-box">
+            <span class="search-icon"></span>
+            <input type="text" id="search-appointments" placeholder="Search…" oninput="renderAppointments()"/>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('appointment')">＋ New Appointment</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Patient</th><th>Doctor</th><th>Department</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="appointments-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── INVOICES ── -->
+    <div class="page" id="page-invoices">
+      <div class="sec-header">
+        <div class="sec-title">Invoices & Billing</div>
+        <div class="sec-actions">
+          <div class="search-box">
+            <span class="search-icon"></span>
+            <input type="text" id="search-invoices" placeholder="Search invoices…" oninput="renderInvoices()"/>
+          </div>>
+          <button class="btn btn-primary" onclick="openModal('invoice')">＋ New Invoice</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Patient</th><th>Date</th><th>Amount</th><th>With Tax (10%)</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="invoices-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── AUDIT LOG ── -->
+    <div class="page" id="page-audit">
+      <div class="sec-header">
+        <div class="sec-title">Audit Log</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Table</th><th>Action</th><th>Record ID</th><th>Timestamp</th><th>Notes</th>
+          </tr></thead>
+          <tbody id="audit-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Patient Modal -->
+<div class="modal-overlay" id="modal-patient">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="patient-modal-title">Add Patient</div>
+      <button class="modal-close" onclick="closeModal('patient')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="patient-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-control" id="patient-name" placeholder="Alice Brown"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date of Birth *</label>
+          <input class="form-control" id="patient-dob" type="date"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Gender</label>
+          <select class="form-control" id="patient-gender">
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input class="form-control" id="patient-phone" placeholder="555-0101"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Address</label>
+        <input class="form-control" id="patient-address" placeholder="123 Maple St, NY"/>
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-outline" onclick="closeModal('patient')">Cancel</button>
+        <button class="btn btn-primary" onclick="savePatient()">Save Patient</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Doctor Modal -->
+<div class="modal-overlay" id="modal-doctor">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="doctor-modal-title">Add Doctor</div>
+      <button class="modal-close" onclick="closeModal('doctor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="doctor-id"/>
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input class="form-control" id="doctor-name" placeholder="Dr. Robert Smith"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Specialty</label>
+          <input class="form-control" id="doctor-specialty" placeholder="Cardiologist"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <select class="form-control" id="doctor-dept"></select>
+        </div>
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-outline" onclick="closeModal('doctor')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDoctor()">Save Doctor</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Appointment Modal -->
+<div class="modal-overlay" id="modal-appointment">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="appt-modal-title">New Appointment</div>
+      <button class="modal-close" onclick="closeModal('appointment')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="appt-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Patient *</label>
+          <select class="form-control" id="appt-patient"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Doctor *</label>
+          <select class="form-control" id="appt-doctor"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input class="form-control" id="appt-date" type="date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time *</label>
+          <input class="form-control" id="appt-time" type="time"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" id="appt-status">
+          <option>Scheduled</option><option>Completed</option><option>Cancelled</option>
+        </select>
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-outline" onclick="closeModal('appointment')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAppointment()">Save Appointment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice Modal -->
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="inv-modal-title">New Invoice</div>
+      <button class="modal-close" onclick="closeModal('invoice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="inv-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Patient *</label>
+          <select class="form-control" id="inv-patient"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input class="form-control" id="inv-date" type="date"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount ($) *</label>
+          <input class="form-control" id="inv-amount" type="number" min="0" step="0.01" placeholder="250.00"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Status</label>
+          <select class="form-control" id="inv-status">
+            <option>Unpaid</option><option>Paid</option><option>Partially Paid</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-outline" onclick="closeModal('invoice')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

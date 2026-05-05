@@ -1,0 +1,139 @@
+\documentclass[a4paper]{article}
+\usepackage{lastpage}
+\usepackage{hyperref}
+\usepackage{neu}
+\usepackage{float}
+\usepackage{needspace}
+\usepackage{calc} % BẮT BUỘC có gói này để tính toán width=\linewidth-15pt
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Định nghĩa màu sắc
+\definecolor{backcolour}{rgb}{0.98,0.98,0.98}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0.1,0.3,0.8}
+\definecolor{codepurple}{rgb}{0.5,0,0.7}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codebg}{rgb}{0.95,0.95,0.92}
+\definecolor{codefunc}{rgb}{0.85, 0.4, 0.1}
+\definecolor{codebuiltin}{rgb}{0.1, 0.5, 0.5}
+
+\newtcblisting{sqlcode}{
+  enhanced,
+  breakable,
+  lines before break=3,
+  arc=6pt,
+  boxrule=0.6pt,
+  colback=backcolour,
+  colframe=lightgray!80,
+  listing only,
+  top=2pt,
+  bottom=2pt,
+  left=5pt,
+  enlarge left by=15pt,
+  width=\linewidth-15pt,
+  listing options={
+    language=SQL,
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=10pt,
+    xleftmargin=-5pt,
+    showstringspaces=false,
+    commentstyle=\color{gray},
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codepurple},
+    breaklines=true
+  }
+}
+
+% Dùng biber để xử lý trích dẫn tốt hơn (vì bạn đã cài Perl)
+\usepackage[backend=biber,style=numeric]{biblatex}
+\addbibresource{main.bib}
+
+% --- Dán đoạn này vào Preamble (trước \begin{document}) ---
+
+\newtcblisting{bashcode}{
+  enhanced,
+  breakable,
+  lines before break=3,
+  arc=6pt,
+  boxrule=0.6pt,
+  colback=backcolour,        % Dùng chung màu nền trắng xám của SQL
+  colframe=lightgray!80,     % Dùng chung màu khung của SQL
+  listing only,
+  top=2pt,
+  bottom=2pt,
+  left=5pt,
+  enlarge left by=15pt,
+  width=\linewidth-15pt,
+  listing options={
+    language=bash,
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    numberstyle=\tiny\color{codegray}, % Màu số dòng giống SQL
+    numbersep=10pt,
+    xleftmargin=-5pt,
+    showstringspaces=false,
+    commentstyle=\color{gray},         % Màu chú thích xám
+    keywordstyle=\color{codeblue}\bfseries, % Màu lệnh (blue) giống SQL
+    stringstyle=\color{codepurple},    % Màu chuỗi (purple) giống SQL
+    breaklines=true,
+    % Thêm các từ khóa đặc thù của Linux nếu muốn nó đậm lên
+    morekeywords={sudo, apt-get, pip, python, uvicorn, docker, mkdir, cd, ls}
+  }
+}
+
+\lstdefinestyle{my_python_style}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=10pt,
+    xleftmargin=-5pt,
+    showstringspaces=false,
+    commentstyle=\color{gray},
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codepurple},
+    breaklines=true,
+    % Cấu hình hàm built-ins
+    morekeywords=[2]{print, len, int, float, str, list, dict, set, tuple, range, open},
+    keywordstyle=[2]{\color{codebuiltin}},
+    % Cấu hình hàm tự định nghĩa
+    emph={schedule_appointment, connect_to_database, cursor, callproc, commit}, 
+    emphstyle=\color{codefunc}
+}
+
+\newtcblisting{pythoncode}{
+  enhanced,
+  breakable,
+  lines before break=3,
+  arc=6pt,
+  boxrule=0.6pt,
+  colback=backcolour,        % Dùng chung màu nền trắng xám[cite: 1]
+  colframe=lightgray!80,     % Dùng chung màu khung[cite: 1]
+  listing only,
+  top=2pt,
+  bottom=2pt,
+  left=5pt,
+  enlarge left by=15pt,
+  width=\linewidth-15pt,     % Khớp chiều rộng với SQL và Bash[cite: 1]
+  listing options={style=my_python_style} % Gọi style đã định nghĩa ở trên vào đây
+}
+
+\begin{document}
+
+\include{Sections/0-Title}
+\include{Sections/1-Intro}
+\include{Sections/2-Sys_Ana_Require}
+\include{Sections/3-DB_Design}
+\include{Sections/4-DB_Implementation}
+\include{Sections/5-Advanced_DB_Objects}
+\include{Sections/6-DB_Security}
+\include{Sections/7-Py_Apply_Dev}
+\include{Sections/8-Conclu_Rcm}
+
+% In danh mục tài liệu tham khảo
+\printbibliography
+\end{document}

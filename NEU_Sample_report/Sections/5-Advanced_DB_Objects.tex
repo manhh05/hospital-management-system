@@ -1,0 +1,386 @@
+\section{Advanced Database Objects}
+
+\subsection{Indexes}
+\label{sec:5.1}
+To optimize query performance and ensure rapid data retrieval, strategic indexes are implemented across core tables. These indexes minimize full table scans and significantly improve the speed of common search operations \cite{mysql_stored_programs}.
+
+\begin{sqlcode}
+-- Speed up patient name searches
+CREATE INDEX idx_patient_name
+    ON Patients(PatientName);
+
+-- Speed up appointment date range queries
+CREATE INDEX idx_appointment_date
+    ON Appointments(AppointmentDate);
+
+-- Speed up appointment lookup by doctor
+CREATE INDEX idx_appointment_doctor
+    ON Appointments(DoctorID);
+
+-- Composite index: doctor + date (common filter in scheduling queries)
+CREATE INDEX idx_appt_doctor_date
+    ON Appointments(DoctorID, AppointmentDate);
+
+-- Speed up invoice lookup by patient
+CREATE INDEX idx_invoice_patient
+    ON Invoices(PatientID);
+
+-- Speed up patient search by phone number
+CREATE INDEX idx_patient_phone
+    ON Patients(PhoneNumber);
+\end{sqlcode}
+
+\begin{itemize}
+    \item \textbf{Patient Search Optimization:} Indexes on patient names and phone numbers allow for rapid retrieval of specific patient records.
+    \item \textbf{Appointment Management:} Dedicated indexes on appointment dates and doctor identifiers facilitate efficient scheduling lookups and date range reporting.
+    \item \textbf{Composite Indexing:} A multi column index combining doctor identifiers and appointment dates is utilized to streamline frequent scheduling filters.
+    \item \textbf{Financial Tracking:} An index on patient identifiers within the invoices table accelerates the generation of financial summaries and payment history reports
+\end{itemize}
+
+\subsection{Views}
+To enhance data accessibility and simplify complex reporting, several virtual views are implemented to provide specialized perspectives on hospital operations \cite{mysql_stored_programs}.
+
+\begin{sqlcode}
+-- Today's full appointment schedule
+CREATE VIEW DailyAppointments AS
+SELECT
+    a.AppointmentID,
+    p.PatientName,
+    p.PhoneNumber,
+    d.DoctorName,
+    dept.DepartmentName,
+    a.AppointmentDate,
+    a.AppointmentTime,
+    a.Status
+FROM Appointments a
+JOIN Patients p ON a.PatientID = p.PatientID
+JOIN Doctors d ON a.DoctorID = d.DoctorID
+JOIN Departments dept ON d.DepartmentID = dept.DepartmentID
+WHERE a.AppointmentDate = CURDATE();
+
+-- Patient financial summary
+CREATE VIEW PatientInvoiceSummary AS
+SELECT
+    p.PatientID,
+    p.PatientName,
+    COUNT(i.InvoiceID) AS TotalInvoices,
+    COALESCE(SUM(i.TotalAmount), 0) AS TotalBilled,
+    COALESCE(SUM(CASE WHEN i.PaymentStatus = 'Paid' THEN i.TotalAmount ELSE 0 END), 0) AS TotalPaid,
+    COALESCE(SUM(CASE WHEN i.PaymentStatus != 'Paid' THEN i.TotalAmount ELSE 0 END), 0) AS TotalOutstanding
+FROM Patients p
+LEFT JOIN Invoices i ON p.PatientID = i.PatientID
+GROUP BY p.PatientID, p.PatientName;
+
+-- Doctor workload summary
+CREATE VIEW DoctorWorkloadSummary AS
+SELECT
+    d.DoctorID,
+    d.DoctorName,
+    d.Specialty,
+    dept.DepartmentName,
+    COUNT(a.AppointmentID) AS TotalAppointments,
+    SUM(CASE WHEN a.Status = 'Completed' THEN 1 ELSE 0 END) AS Completed,
+    SUM(CASE WHEN a.Status = 'Scheduled' THEN 1 ELSE 0 END) AS Upcoming,
+    SUM(CASE WHEN a.Status = 'Cancelled' THEN 1 ELSE 0 END) AS Cancelled
+FROM Doctors d
+JOIN Departments dept ON d.DepartmentID = dept.DepartmentID
+LEFT JOIN Appointments a ON d.DoctorID  = a.DoctorID
+GROUP BY d.DoctorID, d.DoctorName, d.Specialty, dept.DepartmentName;
+
+-- Unpaid invoices report
+CREATE VIEW UnpaidInvoices AS
+SELECT
+    i.InvoiceID,
+    p.PatientName,
+    p.PhoneNumber,
+    i.InvoiceDate,
+    i.TotalAmount,
+    i.PaymentStatus
+FROM Invoices i
+JOIN Patients p ON i.PatientID = p.PatientID
+WHERE i.PaymentStatus IN ('Unpaid', 'Partially Paid')
+ORDER BY i.InvoiceDate;
+\end{sqlcode}
+
+\begin{itemize}
+    \item \textbf{DailyAppointments:} This view merges patient and doctor information to provide a real time overview of the entire medical schedule for the current day.
+    \item \textbf{PatientInvoiceSummary:} This view tracks patient financial status by calculating total billed amounts against paid and outstanding balances.
+    \item \textbf{DoctorWorkloadSummary:} This view monitors staff performance by summarizing total appointments and filtering them by their current completion or cancellation status.
+    \item \textbf{UnpaidInvoices:} This view streamlines debt collection by listing all invoices with a status of unpaid or partially paid in chronological order.
+\end{itemize}
+
+\subsection{Stored Procedures \& Triggers}
+
+\subsubsection*{Stored Procedures}
+Stored procedures are implemented to encapsulate complex business logic and ensure consistent data manipulation across the hospital system.
+
+\begin{sqlcode}
+-- Add a new appointment
+DELIMITER //
+CREATE PROCEDURE AddAppointment(
+    IN p_doctor_id  INT,
+    IN p_patient_id INT,
+    IN p_date DATE,
+    IN p_time TIME)
+BEGIN
+    -- PreventDoubleBooking trigger enforces no-overlap automatically
+    INSERT INTO Appointments (DoctorID, PatientID, AppointmentDate, AppointmentTime)
+    VALUES (p_doctor_id, p_patient_id, p_date, p_time);
+
+    SELECT LAST_INSERT_ID() AS NewAppointmentID;
+END //
+DELIMITER ;
+
+-- Cancel an appointment
+DELIMITER //
+CREATE PROCEDURE CancelAppointment(
+    IN p_appointment_id INT)
+BEGIN
+    DECLARE v_status VARCHAR(20);
+
+    SELECT Status INTO v_status
+    FROM Appointments
+    WHERE AppointmentID = p_appointment_id;
+
+    IF v_status IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: Appointment not found.';
+    ELSEIF v_status = 'Completed' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: Cannot cancel a completed appointment.';
+    ELSE
+        UPDATE Appointments
+        SET Status = 'Cancelled'
+        WHERE AppointmentID = p_appointment_id;
+
+        SELECT 'Appointment cancelled successfully.' AS Message;
+    END IF;
+END //
+DELIMITER ;
+
+-- Generate an invoice for a patient
+DELIMITER //
+CREATE PROCEDURE CreateInvoice(
+    IN  p_patient_id INT,
+    IN  p_amount DECIMAL(10,2),
+    OUT p_invoice_id INT)
+BEGIN
+    IF p_amount <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: Invoice amount must be greater than zero.';
+    END IF;
+
+    INSERT INTO Invoices (PatientID, InvoiceDate, TotalAmount, PaymentStatus)
+    VALUES (p_patient_id, CURDATE(), p_amount, 'Unpaid');
+
+    SET p_invoice_id = LAST_INSERT_ID();
+END //
+DELIMITER ;
+
+-- Get full appointment history for a patient
+DELIMITER //
+CREATE PROCEDURE GetPatientAppointments(
+    IN p_patient_id INT)
+BEGIN
+    SELECT
+        a.AppointmentID,
+        a.AppointmentDate,
+        a.AppointmentTime,
+        a.Status,
+        d.DoctorName,
+        dept.DepartmentName
+    FROM Appointments  a
+    JOIN Doctors d ON a.DoctorID = d.DoctorID
+    JOIN Departments dept ON d.DepartmentID = dept.DepartmentID
+    WHERE a.PatientID = p_patient_id
+    ORDER BY a.AppointmentDate DESC, a.AppointmentTime DESC;
+END //
+DELIMITER ;
+
+-- Monthly revenue report
+DELIMITER //
+CREATE PROCEDURE MonthlyRevenueReport(
+    IN p_year INT,
+    IN p_month INT)
+BEGIN
+    -- Detailed invoice list
+    SELECT
+        p.PatientName,
+        i.InvoiceDate,
+        i.TotalAmount,
+        i.PaymentStatus
+    FROM Invoices i
+    JOIN Patients p ON i.PatientID = p.PatientID
+    WHERE YEAR(i.InvoiceDate) = p_year
+      AND MONTH(i.InvoiceDate) = p_month
+    ORDER BY i.InvoiceDate;
+
+    -- Aggregated summary
+    SELECT
+        COUNT(*) AS TotalInvoices,
+        COALESCE(SUM(TotalAmount), 0) AS GrossRevenue,
+        COALESCE(SUM(CASE WHEN PaymentStatus = 'Paid'  THEN TotalAmount ELSE 0 END), 0) AS CollectedRevenue,
+        COALESCE(SUM(CASE WHEN PaymentStatus != 'Paid' THEN TotalAmount ELSE 0 END), 0) AS OutstandingRevenue
+    FROM Invoices
+    WHERE YEAR(InvoiceDate) = p_year
+      AND MONTH(InvoiceDate) = p_month;
+END //
+DELIMITER ;
+\end{sqlcode}
+
+\begin{itemize}
+    \item \textbf{AddAppointment:} This procedure automates the registration of new medical visits while relying on internal system triggers to prevent scheduling overlaps for doctors.\item \textbf{CancelAppointment:} It manages the cancellation process by verifying the existence of a record and ensuring that completed appointments cannot be modified.
+    \item \textbf{CreateInvoice:} This procedure facilitates financial workflows by generating new billing records for patients based on the current system date.
+    \item \textbf{GetPatientAppointments:} It retrieves a comprehensive chronological history of all medical visits for a specific patient to support clinical review and continuity of care.
+    \item \textbf{MonthlyRevenueReport:} This procedure generates a dual report featuring an itemized list of invoices and an aggregated financial summary for any specified month.
+\end{itemize}
+
+\subsubsection*{Triggers}
+Triggers are utilized to automate data validation and maintain a chronological history of system activities without manual intervention \cite{mysql_stored_programs}.
+
+\begin{sqlcode}
+-- Prevent future date of birth on INSERT
+DELIMITER //
+CREATE TRIGGER BeforePatientInsert
+BEFORE INSERT ON Patients
+FOR EACH ROW
+BEGIN
+    IF NEW.DateOfBirth > CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: Date of Birth cannot be in the future.';
+    END IF;
+END //
+DELIMITER ;
+
+-- Prevent future date of birth on UPDATE
+DELIMITER //
+CREATE TRIGGER BeforePatientUpdate
+BEFORE UPDATE ON Patients
+FOR EACH ROW
+BEGIN
+    IF NEW.DateOfBirth > CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: Date of Birth cannot be in the future.';
+    END IF;
+END //
+DELIMITER ;
+
+-- Prevent doctor double-booking (active appointments only)
+DELIMITER //
+CREATE TRIGGER PreventDoubleBooking
+BEFORE INSERT ON Appointments
+FOR EACH ROW
+BEGIN
+    DECLARE v_count INT;
+
+    SELECT COUNT(*) INTO v_count
+    FROM Appointments
+    WHERE DoctorID = NEW.DoctorID
+      AND AppointmentDate = NEW.AppointmentDate
+      AND AppointmentTime = NEW.AppointmentTime
+      AND Status != 'Cancelled';
+
+    IF v_count > 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: This doctor already has an active appointment at this time.';
+    END IF;
+END //
+DELIMITER ;
+
+-- After invoice insert: update and write audit log
+DELIMITER //
+CREATE TRIGGER AfterInvoiceInsert
+AFTER INSERT ON Invoices
+FOR EACH ROW
+BEGIN
+    INSERT INTO AuditLog (TableName, Action, RecordID, Notes)
+    VALUES ('Invoices', 'INSERT', NEW.InvoiceID,
+            CONCAT('Invoice created for PatientID ', NEW.PatientID,
+                   ' | Amount: ', NEW.TotalAmount));
+END //
+DELIMITER ;
+
+-- Log every appointment status change
+DELIMITER //
+CREATE TRIGGER AfterAppointmentUpdate
+AFTER UPDATE ON Appointments
+FOR EACH ROW
+BEGIN
+    IF OLD.Status != NEW.Status THEN
+        INSERT INTO AuditLog (TableName, Action, RecordID, Notes)
+        VALUES ('Appointments', 'UPDATE', NEW.AppointmentID,
+                CONCAT('Status changed: "', OLD.Status, '" -> "', NEW.Status, '"'));
+    END IF;
+END //
+DELIMITER ;
+\end{sqlcode}
+
+\begin{itemize}
+    \item \textbf{Data Validation:} The \texttt{BeforePatientInsert and BeforePatientUpdate} These triggers maintain data validity by ensuring that a patient's date of birth is not recorded as a future date during record creation or modification.
+    \item \textbf{PreventDoubleBooking:} This trigger enforces scheduling integrity by blocking any new appointment that overlaps with an existing active session for the same doctor.
+    \item \textbf{AfterInvoiceInsert:} It automates administrative tasks by updating the last payment date for patients and generating an audit trail entry whenever a new invoice is issued.
+    \item \textbf{AfterAppointmentUpdate:} This trigger ensures system transparency by automatically logging a history of all changes made to appointment statuses within the audit log.
+\end{itemize}
+
+\subsection{Functions}
+User-defined functions are implemented to perform specialized calculations and format data consistently for various system reports.
+
+\begin{sqlcode}
+-- Calculate total with 10% VAT
+DELIMITER //
+CREATE FUNCTION CalculateTotalWithTax(amount DECIMAL(10,2))
+RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+    RETURN ROUND(amount * 1.10, 2);
+END //
+DELIMITER ;
+
+-- Calculate patient age from date of birth
+DELIMITER //
+CREATE FUNCTION GetPatientAge(p_dob DATE)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE v_age INT;
+    SET v_age = TIMESTAMPDIFF(YEAR, p_dob, CURDATE());
+    RETURN v_age;
+END //
+DELIMITER ;
+
+-- Get total appointment count for a doctor
+DELIMITER //
+CREATE FUNCTION GetDoctorAppointmentCount(p_doctor_id INT)
+RETURNS INT
+READS SQL DATA
+BEGIN
+    DECLARE v_count INT;
+    SELECT COUNT(*) INTO v_count
+    FROM Appointments
+    WHERE DoctorID = p_doctor_id;
+    RETURN v_count;
+END //
+DELIMITER ;
+
+-- Build a display label for a patient (Name + Age)
+DELIMITER //
+CREATE FUNCTION GetPatientLabel(p_patient_id INT)
+RETURNS VARCHAR(150)
+READS SQL DATA
+BEGIN
+    DECLARE v_label VARCHAR(150);
+    SELECT CONCAT(PatientName, ' (Age: ', TIMESTAMPDIFF(YEAR, DateOfBirth, CURDATE()), ')')
+    INTO v_label
+    FROM Patients
+    WHERE PatientID = p_patient_id;
+    RETURN v_label;
+END //
+DELIMITER ;
+\end{sqlcode}
+
+\begin{itemize}
+    \item \textbf{CalculateTotalWithTax:} This function computes the final billing amount by applying a 10 percent value added tax to the base invoice total.
+    \item \textbf{GetPatientAge:} It automatically calculates the current age of a patient by determining the number of years between their birth date and the present date.
+    \item \textbf{GetDoctorAppointmentCount:} This function returns the total volume of medical visits assigned to a specific doctor to help assess individual workload.
+    \item \textbf{GetPatientLabel:} It generates a formatted text string that combines the patient name and current age for easier identification in system displays.
+\end{itemize}

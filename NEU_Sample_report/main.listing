@@ -1,0 +1,6 @@
+def schedule_appointment(doctor_id, patient_id, appt_date, appt_time):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+
+    cursor.callproc('AddAppointment', (doctor_id, patient_id, appt_date, appt_time))
+    conn.commit()

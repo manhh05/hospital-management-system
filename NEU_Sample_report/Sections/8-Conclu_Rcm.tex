@@ -1,0 +1,29 @@
+\section{Conclusion \& Recommendations}
+
+\subsection{Project Outcomes}
+
+The project successfully delivered a fully functional Hospital Management System that integrates administrative efficiency with secure data persistence. Key achievements include:
+\begin{itemize}
+    \item \textbf{Three-Tier Architecture:} Established a clear separation between the web frontend, Python/Flask backend, and MySQL database layer for improved maintainability.
+    \item \textbf{RESTful API:} Developed a robust backend with five resource endpoints handling CRUD operations through parameterized queries to ensure security against SQL injection.
+    \item \textbf{Database Automation:} Implemented Stored Procedures, Triggers, Views, and Indexes to enforce business rules at the database level.
+    \item \textbf{Comprehensive Reporting:} Delivered a reporting module that provides automated insights into daily schedules, financial summaries, and departmental workloads with minimal latency.
+\end{itemize}
+
+\subsection{Lessons Learned}
+
+The development process provided critical insights into the design of data-driven applications:
+\begin{itemize}
+    \item \textbf{Logic Delegation:} While moving business logic to stored procedures and triggers ensures high data integrity, it increases debugging complexity as errors must be propagated carefully from the database to the application layer.
+    \item \textbf{Connection Management:} The per-request connection pattern used in \texttt{database.py} is reliable for small-scale deployment but introduces overhead that limits scalability under high concurrency.
+    \item \textbf{Data Serialization:} Systematic type normalization for Date and Decimal types is essential for ensuring consistent JSON responses across all API endpoints.
+\end{itemize}
+
+\subsection{Future Work}
+
+To enhance the system for enterprise-level use, the following improvements are proposed:
+\begin{itemize}
+    \item \textbf{Technical Hardening:} Implementing connection pooling (SQLAlchemy) for high concurrency, moving credentials to environment variables, and migrating to a cloud environment for remote accessibility.
+    \item \textbf{Frontend Evolution:} Shifting to a component-based framework like React to handle more complex UI state management.
+    \item \textbf{Functional Expansion:} Developing modules for Pharmacy and Medication management, Electronic Medical Records (EMR), and third-party insurance integration to support end-to-end hospital workflows.
+\end{itemize}

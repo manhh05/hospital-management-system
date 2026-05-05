@@ -1,0 +1,99 @@
+\section{Security \& Administration}
+
+\subsection{User Roles \& Permissions}
+The system implements Role-Based Access Control to protect sensitive medical and financial data while ensuring staff can perform their duties efficiently.
+
+\begin{sqlcode}
+-- Admin - full access to all tables and operations
+CREATE USER IF NOT EXISTS 'admin_hospital'@'localhost' IDENTIFIED BY 'AdminPass@123';
+GRANT ALL PRIVILEGES ON HospitalManagement.* TO 'admin_hospital'@'localhost';
+
+-- Doctor - view patients, manage appointments, view daily schedule
+CREATE USER IF NOT EXISTS 'doctor_user'@'localhost' IDENTIFIED BY 'DoctorPass@456';
+GRANT SELECT ON HospitalManagement.Patients TO 'doctor_user'@'localhost';
+GRANT SELECT, INSERT, UPDATE  ON HospitalManagement.Appointments TO 'doctor_user'@'localhost';
+GRANT SELECT ON HospitalManagement.DailyAppointments TO 'doctor_user'@'localhost';
+GRANT SELECT ON HospitalManagement.DoctorWorkloadSummary TO 'doctor_user'@'localhost';
+
+-- Receptionist - register patients and manage appointments
+CREATE USER IF NOT EXISTS 'receptionist_user'@'localhost' IDENTIFIED BY 'ReceptionPass@789';
+GRANT SELECT, INSERT, UPDATE  ON HospitalManagement.Patients TO 'receptionist_user'@'localhost';
+GRANT SELECT, INSERT, UPDATE  ON HospitalManagement.Appointments TO 'receptionist_user'@'localhost';
+GRANT SELECT ON HospitalManagement.Doctors TO 'receptionist_user'@'localhost';
+GRANT SELECT ON HospitalManagement.Departments TO 'receptionist_user'@'localhost';
+GRANT SELECT ON HospitalManagement.DailyAppointments TO 'receptionist_user'@'localhost';
+
+-- Billing staff - manage invoices, no access to clinical data
+CREATE USER IF NOT EXISTS 'billing_user'@'localhost' IDENTIFIED BY 'BillingPass@321';
+GRANT SELECT, INSERT, UPDATE  ON HospitalManagement.Invoices TO 'billing_user'@'localhost';
+GRANT SELECT ON HospitalManagement.Patients TO 'billing_user'@'localhost';
+GRANT SELECT ON HospitalManagement.PatientInvoiceSummary TO 'billing_user'@'localhost';
+GRANT SELECT ON HospitalManagement.UnpaidInvoices TO 'billing_user'@'localhost';
+
+FLUSH PRIVILEGES;
+\end{sqlcode}
+
+\begin{itemize}
+    \item \textbf{Admin:} This role holds full privileges over all tables and database operations to ensure complete system oversight and maintenance.
+    \item \textbf{Doctor:} This role is granted permissions to view patient records and manage appointment schedules while accessing specific clinical workload summaries.
+    \item \textbf{Receptionist:} Staff in this role can register new patients and coordinate appointments by accessing necessary department and doctor information.
+    \item \textbf{Billing Staff:} This role focuses exclusively on financial management with permissions to process invoices and monitor outstanding payments without accessing clinical details.
+\end{itemize}
+
+\subsection{Security Plan}
+The security plan for the Hospital Management System is established through access control, automated auditing, and network restrictions.
+
+\begin{itemize}
+    \item \textbf{Principle of Least Privilege:} Each user role is granted only the necessary permissions required for their specific functions. For instance, billing staff manage financial tables but lack visibility into clinical data such as appointment records.
+    \item \textbf{Credential Management:} All accounts are secured with strong passwords combining uppercase letters, lowercase letters, digits, and special characters. In production environments, credentials should be managed via secrets managers and rotated periodically.
+    \item \textbf{System Auditing:} The system utilizes an AuditLog table to record key data modifications through automated triggers. Every invoice creation and appointment status change is logged with a timestamp and descriptive note for full traceability.
+    \item \textbf{Network Security:} Database accounts are bound to localhost to block remote connections by default. Production deployments should further implement IP whitelisting and SSL or TLS encryption for all data transmissions.
+    \item \textbf{Immediate Implementation:} The system performs a privilege flush after all role configurations are applied to ensure permission changes take effect immediately.
+\end{itemize}
+
+\subsection{Backup \& Recovery}
+
+The system implements a comprehensive backup and recovery strategy to safeguard hospital data against hardware failure or accidental deletion.
+\begin{itemize}
+    \item \textbf{Logical Backup:} Daily logical backups are executed using the mysqldump utility to create a complete SQL snapshot of the database.
+\end{itemize}
+
+\begin{bashcode}
+mysqldump -u admin_hospital -p HospitalManagement > /backups/hospital_$(date +%F).sql
+\end{bashcode}
+
+\begin{itemize}
+    \item \textbf{Point-in-Time Recovery:} Binary logging is enabled to track every transaction, allowing the system to be restored to a specific moment in time.
+    \begin{itemize}
+        \item Configuration in \texttt{my.cnf}
+    \end{itemize}
+    \begin{bashcode}
+[mysqld]
+log_bin = /var/log/mysql/mysql-bin.log
+expire_logs_days = 14
+    \end{bashcode}
+    \begin{itemize}
+        \item Restoration command
+    \end{itemize}
+    \begin{bashcode}
+mysqlbinlog mysql-bin.000001 | mysql -u root -p
+    \end{bashcode}
+    \item \textbf{Physical Backup:} For large scale production environments, Percona XtraBackup is recommended to perform high speed hot backups without causing system downtime.
+    \item \textbf{Recovery Testing:} Backup integrity is verified through monthly restoration drills in a staging environment to ensure a reliable Recovery Time Objective.
+\end{itemize}
+
+\subsection{Optimization}
+
+\subsubsection*{Indexing Strategy}
+Six indexes were implemented across the core tables, as detailed in Section~\ref{sec:5.1}. These target the most frequently queried columns, patient names, phone numbers, appointment dates, and invoice lookups, to minimize full table scans in day-to-day operations. The composite index on \texttt{(DoctorID, AppointmentDate)} is particularly critical as scheduling queries routinely filter by both columns simultaneously.
+
+\subsubsection*{Additional Optimization Strategies}
+For future development and production environments with larger datasets, the following advanced strategies are recommended to maintain system efficiency.
+
+\begin{itemize}
+    \item \textbf{Table Partitioning:} Large operational tables such as Appointments and Invoices should be partitioned by year or month to reduce I/O overhead and improve query performance for historical data.
+    \item \textbf{Application Level Query Caching:} Implementing a caching layer like Redis for frequently accessed reports can significantly reduce the load on the database server.
+    \item \textbf{Connection Pooling:} Utilizing connection pooling through frameworks like SQLAlchemy helps minimize the performance cost associated with repeatedly opening and closing database connections.
+    \item \textbf{EXPLAIN Analysis:} Ongoing performance monitoring should include the use of the EXPLAIN statement to detect full table scans and identify opportunities for adding targeted indexes.
+\end{itemize}
+

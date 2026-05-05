@@ -1,0 +1,32 @@
+\section{Requirements}
+
+\subsection{Functional}
+The system must support the following core functionalities to manage hospital operations effectively:
+
+\begin{itemize}
+    \item \textbf{Patient Management:} The ability to add, update, delete, and search comprehensive patient information.
+    \item \textbf{Staff \& Department Management:} Functionality to define and manage medical departments, as well as add and update doctor details and their specific specialties.
+    \item \textbf{Appointment Handling:} Tools for seamlessly scheduling and managing patient-doctor appointments.
+    \item \textbf{Financial Operations:} Features enabling invoice creation and the tracking of all financial transactions.
+    \item \textbf{Reporting:} Automated generation of statistical and financial reports regarding patient visits and revenue.
+\end{itemize}
+
+\subsection{Non-Functional}
+To ensure system reliability, security, and efficiency, the following attributes must be prioritized:
+
+\begin{itemize}
+    \item \textbf{Performance:} The database must utilize indexes and specific optimization strategies to accelerate query execution and enhance overall responsiveness.
+    \item \textbf{Security \& Access Control:} The system requires the configuration of distinct user roles, permissions, and comprehensive data security solutions to protect sensitive medical records.
+    \item \textbf{Reliability \& Availability:} Implementation of effective backup and data recovery procedures is required to prevent data loss and ensure system resilience.
+    \item \textbf{Automation:} The utilization of advanced database objects, such as triggers and stored procedures, to automate background operations like billing calculations and related data updates.
+\end{itemize}
+
+
+\subsection{Technology Stack}
+The project leverages the following technologies for its backend and application development:
+
+\begin{itemize}
+    \item \textbf{Database Management System:} MySQL for robust data storage, with MySQL Workbench utilized for generating visual database diagrams.
+    \item \textbf{Programming Language:} Python for developing the application logic, data management scripts, and an optional interactive interface (GUI or CLI).
+    \item \textbf{Integration Libraries:} \texttt{mysql-connector-python} or \texttt{SQLAlchemy} for securely integrating the Python application with the MySQL database \cite{mysql_connector_guide, mysql_connector_pypi}.
+\end{itemize}
