@@ -1,6 +1,4 @@
--- ============================================================
 -- SECTION 1: CREATE DATABASE
--- ============================================================
 
 DROP DATABASE IF EXISTS HospitalManagement;
 CREATE DATABASE HospitalManagement
@@ -10,9 +8,7 @@ CREATE DATABASE HospitalManagement
 USE HospitalManagement;
 
 
--- ============================================================
 -- SECTION 2: CREATE TABLES
--- ============================================================
 
 -- 2.1 Departments
 CREATE TABLE Departments (
@@ -31,15 +27,14 @@ CREATE TABLE Doctors (
         ON DELETE SET NULL
 );
 
--- 2.3 Patients  (LastPaymentDate added to support AfterInvoiceInsert trigger)
+-- 2.3 Patients
 CREATE TABLE Patients (
     PatientID INT PRIMARY KEY AUTO_INCREMENT,
     PatientName VARCHAR(100) NOT NULL,
     DateOfBirth DATE,
     Gender VARCHAR(10) CHECK (Gender IN ('Male', 'Female', 'Other')),
     Address VARCHAR(255),
-    PhoneNumber VARCHAR(15),
-    LastPaymentDate DATE DEFAULT NULL
+    PhoneNumber VARCHAR(15)
 );
 
 -- 2.4 Appointments
@@ -80,9 +75,7 @@ CREATE TABLE AuditLog (
 );
 
 
--- ============================================================
 -- SECTION 3: SAMPLE DATA
--- ============================================================
 
 -- 3.1 Departments (10 records)
 INSERT INTO Departments (DepartmentName) VALUES
@@ -150,9 +143,7 @@ INSERT INTO Invoices (PatientID, InvoiceDate, TotalAmount, PaymentStatus) VALUES
     (10, '2024-06-06', 280.00, 'Unpaid');
 
 
--- ============================================================
 -- SECTION 4: INDEXES
--- ============================================================
 
 -- Speed up patient name searches
 CREATE INDEX idx_patient_name
@@ -179,9 +170,7 @@ CREATE INDEX idx_patient_phone
     ON Patients(PhoneNumber);
 
 
--- ============================================================
 -- SECTION 5: VIEWS
--- ============================================================
 
 -- 5.1 Today's full appointment schedule
 CREATE VIEW DailyAppointments AS
@@ -208,11 +197,10 @@ SELECT
     COUNT(i.InvoiceID) AS TotalInvoices,
     COALESCE(SUM(i.TotalAmount), 0) AS TotalBilled,
     COALESCE(SUM(CASE WHEN i.PaymentStatus = 'Paid' THEN i.TotalAmount ELSE 0 END), 0) AS TotalPaid,
-    COALESCE(SUM(CASE WHEN i.PaymentStatus != 'Paid' THEN i.TotalAmount ELSE 0 END), 0) AS TotalOutstanding,
-    p.LastPaymentDate
+    COALESCE(SUM(CASE WHEN i.PaymentStatus != 'Paid' THEN i.TotalAmount ELSE 0 END), 0) AS TotalOutstanding
 FROM Patients p
 LEFT JOIN Invoices i ON p.PatientID = i.PatientID
-GROUP BY p.PatientID, p.PatientName, p.LastPaymentDate;
+GROUP BY p.PatientID, p.PatientName;
 
 -- 5.3 Doctor workload summary
 CREATE VIEW DoctorWorkloadSummary AS
@@ -245,9 +233,7 @@ WHERE i.PaymentStatus IN ('Unpaid', 'Partially Paid')
 ORDER BY i.InvoiceDate;
 
 
--- ============================================================
 -- SECTION 6: STORED PROCEDURES
--- ============================================================
 
 -- 6.1 Add a new appointment
 DELIMITER //
@@ -367,9 +353,7 @@ END //
 DELIMITER ;
 
 
--- ============================================================
 -- SECTION 7: USER-DEFINED FUNCTIONS
--- ============================================================
 
 -- 7.1 Calculate total with 10% VAT
 DELIMITER //
@@ -423,9 +407,7 @@ END //
 DELIMITER ;
 
 
--- ============================================================
 -- SECTION 8: TRIGGERS
--- ============================================================
 
 -- 8.1 Prevent future date of birth on INSERT
 DELIMITER //
@@ -475,16 +457,12 @@ BEGIN
 END //
 DELIMITER ;
 
--- 8.4 After invoice insert: update LastPaymentDate and write audit log
+-- 8.4 After invoice insert
 DELIMITER //
 CREATE TRIGGER AfterInvoiceInsert
 AFTER INSERT ON Invoices
 FOR EACH ROW
 BEGIN
-    UPDATE Patients
-    SET LastPaymentDate = NEW.InvoiceDate
-    WHERE PatientID = NEW.PatientID;
-
     INSERT INTO AuditLog (TableName, Action, RecordID, Notes)
     VALUES ('Invoices', 'INSERT', NEW.InvoiceID,
             CONCAT('Invoice created for PatientID ', NEW.PatientID,
@@ -507,9 +485,7 @@ END //
 DELIMITER ;
 
 
--- ============================================================
 -- SECTION 9: SECURITY — USER ROLES & PERMISSIONS
--- ============================================================
 
 -- 9.1 Admin — full access to all tables and operations
 CREATE USER IF NOT EXISTS 'admin_hospital'@'localhost' IDENTIFIED BY 'AdminPass@123';
@@ -538,114 +514,3 @@ GRANT SELECT ON HospitalManagement.PatientInvoiceSummary TO 'billing_user'@'loca
 GRANT SELECT ON HospitalManagement.UnpaidInvoices TO 'billing_user'@'localhost';
 
 FLUSH PRIVILEGES;
-
-
--- ============================================================
--- SECTION 10: PERFORMANCE OPTIMIZATION NOTES
--- ============================================================
---
---  10.1 Query Caching
---       Use application-level caching (e.g. Redis) for reports
---       like MonthlyRevenueReport that run frequently on the
---       same date range.
---
---  10.2 Table Partitioning (recommended for large datasets)
---       Partition Appointments and Invoices by year/month:
---
---       ALTER TABLE Appointments
---           PARTITION BY RANGE (YEAR(AppointmentDate)) (
---               PARTITION p2023 VALUES LESS THAN (2024),
---               PARTITION p2024 VALUES LESS THAN (2025),
---               PARTITION pFuture VALUES LESS THAN MAXVALUE
---           );
---
---  10.3 EXPLAIN Analysis
---       Run EXPLAIN SELECT ... on slow queries to detect full
---       table scans and add targeted indexes where needed.
---
---  10.4 Connection Pooling
---       Use SQLAlchemy connection pool in Python to reduce
---       per-request connection overhead.
---
---  10.5 Avoid SELECT *
---       Always select only required columns in application
---       queries to reduce I/O and network transfer.
-
-
--- ============================================================
--- SECTION 11: BACKUP & RECOVERY RECOMMENDATIONS
--- ============================================================
---
---  11.1 Logical Backup (daily via cron)
---       mysqldump -u admin_hospital -p HospitalManagement \
---           > /backups/hospital_$(date +%F).sql
---
---  11.2 Binary Log for Point-in-Time Recovery
---       Add to my.cnf:
---           [mysqld]
---           log_bin          = /var/log/mysql/mysql-bin.log
---           expire_logs_days = 14
---       Restore to a specific point:
---           mysqlbinlog mysql-bin.000001 | mysql -u root -p
---
---  11.3 Physical Backup
---       Use Percona XtraBackup for zero-downtime hot backups
---       on production servers.
---
---  11.4 Recovery Testing
---       Restore a backup to a staging environment monthly to
---       verify integrity and measure Recovery Time Objective.
-
-
--- ============================================================
--- SECTION 12: SAMPLE QUERIES FOR TESTING & REPORTS
--- ============================================================
-
--- 12.1 All patients with calculated age
-SELECT
-    PatientID,
-    PatientName,
-    DateOfBirth,
-    GetPatientAge(DateOfBirth) AS Age,
-    Gender,
-    PhoneNumber
-FROM Patients
-ORDER BY PatientName;
-
--- 12.2 All invoices with VAT-inclusive total
-SELECT
-    i.InvoiceID,
-    p.PatientName,
-    i.InvoiceDate,
-    i.TotalAmount                        AS BaseAmount,
-    CalculateTotalWithTax(i.TotalAmount) AS AmountWithTax,
-    i.PaymentStatus
-FROM Invoices i
-JOIN Patients p ON i.PatientID = p.PatientID
-ORDER BY i.InvoiceDate DESC;
-
--- 12.3 Doctor workload overview
-SELECT * FROM DoctorWorkloadSummary
-ORDER BY TotalAppointments DESC;
-
--- 12.4 Patient financial summary
-SELECT * FROM PatientInvoiceSummary
-ORDER BY TotalOutstanding DESC;
-
--- 12.5 All unpaid invoices
-SELECT * FROM UnpaidInvoices;
-
--- 12.6 Appointment history for patient #1
-CALL GetPatientAppointments(1);
-
--- 12.7 Revenue report for June 2024
-CALL MonthlyRevenueReport(2024, 6);
-
--- 12.8 Book a new appointment (triggers validate automatically)
-CALL AddAppointment(1, 3, '2024-07-10', '09:00:00');
-
--- 12.9 Cancel appointment #9
-CALL CancelAppointment(9);
-
--- 12.10 View audit log
-SELECT * FROM AuditLog ORDER BY ChangedAt DESC;
