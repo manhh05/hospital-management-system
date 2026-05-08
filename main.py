@@ -91,7 +91,7 @@ def api_get_appointments():
 @app.route('/api/appointments', methods=['POST'])
 def api_schedule_appointment():
     data = request.json
-    schedule_appointment(data['patientId'], data['doctorId'], data['date'], data['time'], data['status'])
+    schedule_appointment(data['doctorId'], data['patientId'], data['date'], data['time'], data['status'])
     return jsonify({"status": "success"})
 
 @app.route('/api/appointments/<int:id>', methods=['DELETE'])
@@ -127,11 +127,11 @@ def api_get_audit():
     
     for l in db_logs:
         formatted.append({
-            "id": l.get("AuditID") or l.get("id") or 0,
-            "table": l.get("TableName") or l.get("table_name") or "Unknown",
+            "id": l.get("LogID") or 0,
+            "table": l.get("TableName") or "Unknown",
             "action": l.get("Action") or "Unknown",
-            "recordId": l.get("RecordID") or l.get("record_id") or 0,
-            "time": str(l.get("Timestamp") or l.get("time") or ""),
+            "recordId": l.get("RecordID") or 0,
+            "time": str(l.get("ChangedAt") or ""),
             "notes": l.get("Notes") or ""
         })
     return jsonify(formatted)
