@@ -488,7 +488,7 @@ DELIMITER ;
 -- SECTION 9: SECURITY — USER ROLES & PERMISSIONS
 
 -- 9.1 Admin — full access to all tables and operations
-CREATE USER IF NOT EXISTS 'admin_hospital'@'localhost' IDENTIFIED BY 'AdminPass@123';
+CREATE USER IF NOT EXISTS 'admin_hospital'@'localhost' IDENTIFIED BY 'AdminPass123';
 GRANT ALL PRIVILEGES ON HospitalManagement.* TO 'admin_hospital'@'localhost';
 
 -- 9.2 Doctor — view patients, manage appointments, view daily schedule
