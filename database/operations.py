@@ -191,6 +191,25 @@ def update_doctor(doctor_id, name=None, specialty=None, department_id=None):
             conn.close()
 
 
+def delete_doctor(doctor_id):
+    """Deletes a doctor record from the database."""
+    conn = connect_to_database()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM Doctors WHERE DoctorID = %s", (doctor_id,))
+            conn.commit()
+            if cursor.rowcount:
+                print(f"Doctor ID {doctor_id} deleted successfully.")
+            else:
+                print(f"No doctor found with ID {doctor_id}.")
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+
 # ============================================================
 # APPOINTMENT MANAGEMENT
 # ============================================================
@@ -223,7 +242,7 @@ def schedule_appointment(doctor_id, patient_id, appt_date, appt_time):
             conn.commit()
             print("Appointment scheduled successfully.")
         except mysql.connector.Error as err:
-            print(f"Error: {err}")
+            raise Exception(str(err))
         finally:
             cursor.close()
             conn.close()
@@ -272,26 +291,86 @@ def get_all_invoices():
 
 def create_invoice(patient_id, amount):
     """
-    Creates a new invoice via the CreateInvoice stored procedure.
-    The AfterInvoiceInsert trigger automatically:
-      - Updates Patients.LastPaymentDate
-      - Writes a record to AuditLog
+    Creates a new invoice with a direct INSERT.
+    The AfterInvoiceInsert trigger automatically writes a record to AuditLog.
     """
     conn = connect_to_database()
     if conn:
         try:
             cursor = conn.cursor()
-            args = (patient_id, amount, 0)   # 0 is the OUT parameter placeholder
-            result_args = cursor.callproc('CreateInvoice', args)
+            cursor.execute(
+                """INSERT INTO Invoices (PatientID, InvoiceDate, TotalAmount, PaymentStatus)
+                   VALUES (%s, CURDATE(), %s, 'Unpaid')""",
+                (patient_id, amount)
+            )
             conn.commit()
-            new_invoice_id = result_args[2]   # OUT p_invoice_id
-            print(f"Invoice created successfully. Invoice ID: {new_invoice_id}")
-            return new_invoice_id
+            return cursor.lastrowid
+        except mysql.connector.Error as err:
+            print(f"Error creating invoice: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+    return None
+
+def update_appointment(appointment_id, status):
+    conn = connect_to_database()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            # Kiểm tra status hiện tại
+            cursor.execute("SELECT Status FROM Appointments WHERE AppointmentID = %s", (appointment_id,))
+            row = cursor.fetchone()
+            if row and row['Status'] == 'Completed':
+                raise Exception("Cannot modify a completed appointment.")
+            cursor.execute(
+                "UPDATE Appointments SET Status = %s WHERE AppointmentID = %s",
+                (status, appointment_id)
+            )
+            conn.commit()
+        except mysql.connector.Error as err:
+            raise Exception(str(err))
+        finally:
+            cursor.close()
+            conn.close()
+
+
+def update_invoice(invoice_id, amount=None, status=None):
+    """Updates amount and/or payment status of an existing invoice."""
+    conn = connect_to_database()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            fields, values = [], []
+            if amount is not None:
+                fields.append("TotalAmount = %s"); values.append(amount)
+            if status is not None:
+                fields.append("PaymentStatus = %s"); values.append(status)
+            if not fields:
+                return
+            values.append(invoice_id)
+            cursor.execute(f"UPDATE Invoices SET {', '.join(fields)} WHERE InvoiceID = %s", values)
+            conn.commit()
         except mysql.connector.Error as err:
             print(f"Error: {err}")
         finally:
             cursor.close()
             conn.close()
+
+
+def delete_invoice(invoice_id):
+    """Deletes an invoice record from the database."""
+    conn = connect_to_database()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM Invoices WHERE InvoiceID = %s", (invoice_id,))
+            conn.commit()
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
 
 def get_all_audit_logs():
     conn = connect_to_database()

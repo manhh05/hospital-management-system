@@ -73,6 +73,12 @@ def api_update_doctor(id):
     return jsonify({"status": "success"})
 
 # ─── 4. QUẢN LÝ LỊCH HẸN (APPOINTMENTS) ───
+@app.route('/api/doctors/<int:id>', methods=['DELETE'])
+def api_delete_doctor(id):
+    from database.operations import delete_doctor
+    delete_doctor(id)
+    return jsonify({"status": "success"})
+
 @app.route('/api/appointments', methods=['GET'])
 def api_get_appointments():
     db_appts = get_all_appointments()
@@ -91,7 +97,17 @@ def api_get_appointments():
 @app.route('/api/appointments', methods=['POST'])
 def api_schedule_appointment():
     data = request.json
-    schedule_appointment(data['doctorId'], data['patientId'], data['date'], data['time'], data['status'])
+    try:
+        schedule_appointment(data['doctorId'], data['patientId'], data['date'], data['time'])
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 409
+
+@app.route('/api/appointments/<int:id>', methods=['PUT'])
+def api_update_appointment(id):
+    data = request.json
+    from database.operations import update_appointment
+    update_appointment(id, data.get('status'))
     return jsonify({"status": "success"})
 
 @app.route('/api/appointments/<int:id>', methods=['DELETE'])
@@ -117,7 +133,25 @@ def api_get_invoices():
 @app.route('/api/invoices', methods=['POST'])
 def api_create_invoice():
     data = request.json
-    create_invoice(data['patientId'], data['date'], data['amount'], data['status'])
+    try:
+        result = create_invoice(data['patientId'], data['amount'])
+        if result is None:
+            return jsonify({"status": "error", "message": "Invoice creation failed"}), 500
+        return jsonify({"status": "success", "invoiceId": result})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/invoices/<int:id>', methods=['PUT'])
+def api_update_invoice(id):
+    data = request.json
+    from database.operations import update_invoice
+    update_invoice(id, data.get('amount'), data.get('status'))
+    return jsonify({"status": "success"})
+
+@app.route('/api/invoices/<int:id>', methods=['DELETE'])
+def api_delete_invoice(id):
+    from database.operations import delete_invoice
+    delete_invoice(id)
     return jsonify({"status": "success"})
 
 @app.route('/api/audit', methods=['GET'])

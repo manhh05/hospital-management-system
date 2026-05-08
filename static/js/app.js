@@ -188,6 +188,11 @@ function openModal(type, data = null) {
   }
 
   if (type === 'appointment') {
+    // Chặn edit nếu appointment đã Completed
+    if (data && data.status === 'Completed') {
+      toast('This appointment is completed and cannot be edited.', 'error');
+      return;
+    }
     document.getElementById('appt-patient').innerHTML = patients.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     document.getElementById('appt-doctor').innerHTML  = doctors.map(d  => `<option value="${d.id}">${d.name}</option>`).join('');
     document.getElementById('appt-modal-title').textContent = data ? 'Edit Appointment' : 'New Appointment';
@@ -237,19 +242,28 @@ function savePatient() {
   };
 
   if (id) {
-    Object.assign(patients.find(x => x.id == id), obj);
-    addAudit('Patients', 'UPDATE', +id, `Patient "${name}" updated`);
-    toast('Patient updated successfully.');
+    fetch(`/api/patients/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(() => {
+      addAudit('Patients', 'UPDATE', +id, `Patient "${name}" updated`);
+      toast('Patient updated successfully.');
+      fetchPatients();
+      closeModal('patient');
+    });
   } else {
-    obj.id = nextPatientId++;
-    patients.push(obj);
-    addAudit('Patients', 'INSERT', obj.id, `New patient "${name}" added`);
-    toast('Patient added successfully.');
+    fetch('/api/patients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(() => {
+      addAudit('Patients', 'INSERT', 0, `New patient "${name}" added`);
+      toast('Patient added successfully.');
+      fetchPatients();
+      closeModal('patient');
+    });
   }
-
-  closeModal('patient');
-  renderPatients();
-  renderDashboard();
 }
 
 function saveDoctor() {
@@ -264,19 +278,28 @@ function saveDoctor() {
   };
 
   if (id) {
-    Object.assign(doctors.find(x => x.id == id), obj);
-    addAudit('Doctors', 'UPDATE', +id, `Doctor "${name}" updated`);
-    toast('Doctor updated successfully.');
+    fetch(`/api/doctors/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(() => {
+      addAudit('Doctors', 'UPDATE', +id, `Doctor "${name}" updated`);
+      toast('Doctor updated successfully.');
+      fetchDoctors();
+      closeModal('doctor');
+    });
   } else {
-    obj.id = nextDoctorId++;
-    doctors.push(obj);
-    addAudit('Doctors', 'INSERT', obj.id, `New doctor "${name}" added`);
-    toast('Doctor added successfully.');
+    fetch('/api/doctors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(() => {
+      addAudit('Doctors', 'INSERT', 0, `New doctor "${name}" added`);
+      toast('Doctor added successfully.');
+      fetchDoctors();
+      closeModal('doctor');
+    });
   }
-
-  closeModal('doctor');
-  renderDoctors();
-  renderDashboard();
 }
 
 function saveAppointment() {
@@ -288,6 +311,11 @@ function saveAppointment() {
   const id     = document.getElementById('appt-id').value;
 
   if (!date || !time) { toast('Date and time are required.', 'error'); return; }
+
+  // Confirm trước khi mark Completed (không thể hoàn tác)
+  if (status === 'Completed') {
+    if (!confirm('Are you sure you want to mark this appointment as Completed? This action cannot be undone.')) return;
+  }
 
   // Double-booking check (mirrors PreventDoubleBooking trigger)
   const conflict = appointments.find(a =>
@@ -302,88 +330,107 @@ function saveAppointment() {
   const obj = { patientId: pid, doctorId: did, date, time, status };
 
   if (id) {
-    const a = appointments.find(x => x.id == id);
-    const oldStatus = a.status;
-    Object.assign(a, obj);
-    if (oldStatus !== status) {
-      addAudit('Appointments', 'UPDATE', +id, `Status changed: "${oldStatus}" -> "${status}"`);
-    }
-    toast('Appointment updated successfully.');
+    fetch(`/api/appointments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(() => {
+      if (obj.status !== status) {
+        addAudit('Appointments', 'UPDATE', +id, `Status changed: "${status}"`);
+      }
+      toast('Appointment updated successfully.');
+      fetchAppointments();
+      closeModal('appointment');
+    });
   } else {
-    obj.id = nextAppointmentId++;
-    appointments.push(obj);
-    addAudit('Appointments', 'INSERT', obj.id, `New appointment for PatientID ${pid} with DoctorID ${did}`);
-    toast('Appointment booked successfully.');
+    fetch('/api/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(() => {
+      addAudit('Appointments', 'INSERT', 0, `New appointment for PatientID ${pid} with DoctorID ${did}`);
+      toast('Appointment booked successfully.');
+      fetchAppointments();
+      closeModal('appointment');
+    });
   }
-
-  closeModal('appointment');
-  renderAppointments();
-  renderDashboard();
 }
 
 function saveInvoice() {
   const pid    = +document.getElementById('inv-patient').value;
-  const date   = document.getElementById('inv-date').value;
+  let   date   = document.getElementById('inv-date').value;
   const amount = parseFloat(document.getElementById('inv-amount').value);
   const status = document.getElementById('inv-status').value;
   const id     = document.getElementById('inv-id').value;
 
-  if (!date || isNaN(amount) || amount <= 0) { toast('Valid date and amount are required.', 'error'); return; }
+  if (!date) date = new Date().toISOString().split('T')[0];
+
+  if (isNaN(amount) || amount <= 0) { toast('Valid amount is required.', 'error'); return; }
 
   const obj = { patientId: pid, date, amount, status };
 
   if (id) {
-    Object.assign(invoices.find(x => x.id == id), obj);
-    addAudit('Invoices', 'UPDATE', +id, `Invoice updated for PatientID ${pid} | Amount: ${amount}`);
-    toast('Invoice updated successfully.');
+    fetch(`/api/invoices/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(() => {
+      addAudit('Invoices', 'UPDATE', +id, `Invoice updated for PatientID ${pid} | Amount: ${amount}`);
+      toast('Invoice updated successfully.');
+      fetchInvoices();
+      closeModal('invoice');
+    });
   } else {
-    obj.id = nextInvoiceId++;
-    invoices.push(obj);
-    addAudit('Invoices', 'INSERT', obj.id, `Invoice created for PatientID ${pid} | Amount: ${amount}`);
-    toast('Invoice created successfully.');
+    fetch('/api/invoices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(obj)
+    }).then(res => res.json()).then(data => {
+      if (data.status === 'error') { toast(data.message || 'Failed to create invoice.', 'error'); return; }
+      addAudit('Invoices', 'INSERT', 0, `Invoice created for PatientID ${pid} | Amount: ${amount}`);
+      toast('Invoice created successfully.');
+      fetchInvoices();
+      closeModal('invoice');
+    }).catch(() => toast('Network error. Please try again.', 'error'));
   }
-
-  closeModal('invoice');
-  renderInvoices();
-  renderDashboard();
 }
 
 // ══ DELETE HANDLERS ══
 
 function deletePatient(id) {
   if (!confirm('Delete this patient?')) return;
-  patients = patients.filter(p => p.id !== id);
-  addAudit('Patients', 'DELETE', id, 'Patient record removed');
-  renderPatients();
-  renderDashboard();
-  toast('Patient deleted.');
+  fetch(`/api/patients/${id}`, { method: 'DELETE' }).then(() => {
+    addAudit('Patients', 'DELETE', id, 'Patient record removed');
+    fetchPatients();
+    toast('Patient deleted.');
+  });
 }
 
 function deleteDoctor(id) {
   if (!confirm('Delete this doctor?')) return;
-  doctors = doctors.filter(d => d.id !== id);
-  addAudit('Doctors', 'DELETE', id, 'Doctor record removed');
-  renderDoctors();
-  renderDashboard();
-  toast('Doctor deleted.');
+  fetch(`/api/doctors/${id}`, { method: 'DELETE' }).then(() => {
+    addAudit('Doctors', 'DELETE', id, 'Doctor record removed');
+    fetchDoctors();
+    toast('Doctor deleted.');
+  });
 }
 
 function deleteAppointment(id) {
   if (!confirm('Cancel this appointment?')) return;
-  appointments = appointments.filter(a => a.id !== id);
-  addAudit('Appointments', 'DELETE', id, 'Appointment removed');
-  renderAppointments();
-  renderDashboard();
-  toast('Appointment removed.');
+  fetch(`/api/appointments/${id}`, { method: 'DELETE' }).then(() => {
+    addAudit('Appointments', 'DELETE', id, 'Appointment removed');
+    fetchAppointments();
+    toast('Appointment removed.');
+  });
 }
 
 function deleteInvoice(id) {
   if (!confirm('Delete this invoice?')) return;
-  invoices = invoices.filter(i => i.id !== id);
-  addAudit('Invoices', 'DELETE', id, 'Invoice removed');
-  renderInvoices();
-  renderDashboard();
-  toast('Invoice deleted.');
+  fetch(`/api/invoices/${id}`, { method: 'DELETE' }).then(() => {
+    addAudit('Invoices', 'DELETE', id, 'Invoice removed');
+    fetchInvoices();
+    toast('Invoice deleted.');
+  });
 }
 
 // ══ RENDER FUNCTIONS ══
